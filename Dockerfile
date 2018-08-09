@@ -4,7 +4,7 @@
 # BUILD: docker build --rm -t puckel/docker-airflow .
 # SOURCE: https://github.com/puckel/docker-airflow
 
-FROM python:3.6-slim
+FROM python:3.6 as base_airflow
 LABEL maintainer="Puckel_"
 
 # Never prompts the user for choices on installation/configuration of packages
@@ -48,7 +48,8 @@ RUN set -ex \
         curl \
         rsync \
         netcat \
-        locales \
+        locales
+RUN apt-get install -y --no-install-recommends openjdk-8-jre-headless ca-certificates-java \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
@@ -77,9 +78,18 @@ COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
 
+FROM base_airflow AS spark_plugin_airflow
+
+ENV SPARK_VERSION "2.3.0"
+ENV HADOOP_VERSION "2.7"
+ENV SPARK_HOME "/spark"
+# download spark binary
+RUN mkdir -p /spark; cd /spark; wget -q https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+RUN tar -xvf /spark/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz --strip 1
+
 EXPOSE 8080 5555 8793
 
 USER airflow
-WORKDIR ${AIRFLOW_HOME}
+#WORKDIR ${AIRFLOW_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["webserver"] # set default arg for entrypoint
