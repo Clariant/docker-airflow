@@ -62,6 +62,7 @@ RUN apt-get install -y --no-install-recommends openjdk-8-jre-headless ca-certifi
     && pip install pyasn1 \
     && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql]==$AIRFLOW_VERSION \
     && pip install celery[redis]==4.1.1 \
+    && pip install boto3 \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
@@ -85,8 +86,8 @@ ENV HADOOP_VERSION "2.7"
 ENV SPARK_HOME "/spark"
 # download spark binary
 RUN mkdir -p /spark; cd /spark; wget -q https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
-RUN tar -xvf /spark/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz --strip 1
-
+RUN cd /spark; tar -zxvf /spark/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz --strip 1
+RUN chown -R airflow /spark
 EXPOSE 8080 5555 8793
 
 USER airflow
